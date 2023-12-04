@@ -67,6 +67,10 @@ void prepPlayback(const char * file_name) {
   out->stop();
 }
 
+void fetchTimeAndSpeak() {
+
+}
+
 void setup() {
   ts2.begin();
   Serial.begin(115200);

@@ -165,6 +165,96 @@ class GeneratorSK(GeneratorAbstract):
         "TridsiatyPrvý",
     ]
 
+    _HOURS = [
+        "polnoc",
+        "jedna hodina",
+        "dve hodiny",
+        "tri hodiny",
+        "štyri hodiny",
+        "päť hodín",
+        "šesť hodín",
+        "sedem hodín",
+        "osem hodín",
+        "deväť hodín",
+        "desať hodín",
+        "jedenásť hodín",
+        "dvanásť hodín",
+        "trinásť hodín",
+        "štrnásť hodín",
+        "pätnásť hodín",
+        "šestnásť hodín",
+        "sedemnásť hodín",
+        "osemnásť hodín",
+        "devätnásť hodín",
+        "dvadsať hodín",
+        "dvadsaťjedna hodín",
+        "dvadsaťdva hodín",
+        "dvadsaťtri hodín",
+    ]
+
+    _MINUTES = [
+        "",
+        "a jedna minúta",
+        "a dve minúty",
+        "a tri minúty",
+        "a štyri minúty",
+        "a päť minút",
+        "a šesť minút",
+        "a sedem minút",
+        "a osem minút",
+        "a deväť minút",
+        "a desať minút",
+        "a jedenásť minút",
+        "a dvanásť minút",
+        "a trinásť minút",
+        "a štrnásť minút",
+        "a pätnásť minút",
+        "a šestnásť minút",
+        "a sedemnásť minút",
+        "a osemnásť minút",
+        "a devätnásť minút",
+        "a dvadsať minút",
+        "a dvadsaťjeden minút",
+        "a dvadsaťdva minút",
+        "a dvadsaťtri minút",
+        "a dvadsaťštyri minút",
+        "a dvadsaťpäť minút",
+        "a dvadsaťšesť minút",
+        "a dvadsaťsedem minút",
+        "a dvadsaťosem minút",
+        "a dvadsaťdeväť minút",
+        "a tridsať minút",
+        "a tridsaťjeden minút",
+        "a tridsaťdva minút",
+        "a tridsaťtri minút",
+        "a tridsaťštyri minút",
+        "a tridsaťpäť minút",
+        "a tridsaťšesť minút",
+        "a tridsaťsedem minút",
+        "a tridsaťosem minút",
+        "a tridsaťdeväť minút",
+        "a štyridsať minút",
+        "a štyridsaťjeden minút",
+        "a štyridsaťdva minút",
+        "a štyridsaťtri minút",
+        "a štyridsaťštyri minút",
+        "a štyridsaťpäť minút",
+        "a štyridsaťšesť minút",
+        "a štyridsaťsedem minút",
+        "a štyridsaťosem minút",
+        "a štyridsaťdeväť minút",
+        "a päťdesiat minút",
+        "a päťdesiatjeden minút",
+        "a päťdesiatdva minút",
+        "a päťdesiattri minút",
+        "a päťdesiatštyri minút",
+        "a päťdesiatpäť minút",
+        "a päťdesiatšesť minút",
+        "a päťdesiatsedem minút",
+        "a päťdesiatosem minút",
+        "a päťdesiatdeväť minút",
+    ]
+
     def load_meniny():
         try:
             with open("meniny.json") as f:
@@ -194,19 +284,19 @@ class GeneratorSK(GeneratorAbstract):
         return (f"{dow_id+1:01}", f"<p>{self._DAYS_OF_WEEK[dow_id]}.</p>")
 
     def time(self, hr_id, min_id) -> Tuple[str, str]:
-        if hr_id < 4 or hr_id > 20:
+        if hr_id in (1, 2, 3, 4, 21, 22, 23):
             suffix = " v noci"
-        elif hr_id < 12:
+        elif hr_id in (5, 6, 7, 8, 9, 10, 11):
             suffix = " ráno"
-        elif hr_id > 17:
+        elif hr_id in (17, 18, 19, 20):
             suffix = " večer"
-        elif hr_id > 12:
+        elif hr_id in (12, 13, 14, 15, 16):
             suffix = " poobede"
         else:
             suffix = ""
         return (
             os.path.join(f"{hr_id:02}", f"{min_id:02}"),
-            f"<p>Práve je {hr_id:02}:{min_id:02}{suffix}.</p>",
+            f"<p>Práve je {self._HOURS[hr_id]} {self._MINUTES[min_id]}{suffix}.</p>",
         )
 
     def sequence(self) -> Tuple[str]:
@@ -224,5 +314,7 @@ if __name__ == "__main__":
     gen = GeneratorSK()
     for bank, texts in gen.banks().items():
         for path, text in texts:
+            if dry_run:
+                logging.info(f"{path} -> {text}")
             path = os.path.join(bank, path)
             gen.create_audio_file(path, text, dry_run)
