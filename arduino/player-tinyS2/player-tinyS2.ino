@@ -105,16 +105,17 @@ bool GetLocalTime(struct tm *info, uint32_t ms) {
 }
 
 void fetchTimeUsingWiFi() {
+  Serial.println("Connecting to WIFI (500ms for each dot)");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(100);
+    delay(500);
     Serial.print(".");
   }
   Serial.print("Connected\nContacting Time Server ");
-  configTime(3600 * timezone, daysavetime * 3600, "time.nist.gov", "0.pool.ntp.org", "1.pool.ntp.org");
+  configTime(3600 * timezone, daysavetime * 3600, "0.sk.pool.ntp.org", "2.europe.pool.ntp.org", "1.europe.pool.ntp.org");
   do {
     tmstruct.tm_year = 0;
     GetLocalTime(&tmstruct, 5000);
-    delay(100);
+    delay(500);
     Serial.print(".");
   } while (tmstruct.tm_year < 100);
   Serial.println("Done");
@@ -146,4 +147,8 @@ void setup() {
 
 void loop() {
   fetchTimeAndSpeak();
+  if (ts2.getVbusPresent()) {
+    blink(COLOR_GREEN, 1000);
+    // don't speak forever when charging
+  }
 }
