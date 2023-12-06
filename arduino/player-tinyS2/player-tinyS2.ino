@@ -3,6 +3,7 @@
 #include <TinyS2.h>
 #include <WiFi.h>
 #include <time.h>
+#include <Ethernet.h>
 
 #include "AudioGeneratorMP3.h"
 #include "AudioFileSourceSD.h"
@@ -31,7 +32,12 @@ byte daysavetime = 1;
 #define I2S_WCLK_LRC_PIN 5
 #define I2S_DATA_PIN 6
 #define WIFI_SSID "SSID"
-#define WIFI_PASS "Pass"
+#define WIFI_PASS "PASS"
+#define IP_HOST IPAddress(192,168,1,31)
+#define IP_GW IPAddress(192,168,1,1)
+#define IP_MASK IPAddress(255,255,255,0)
+#define IP_DNS1 IPAddress(8,8,8,8)
+#define IP_DNS2 IPAddress(4,4,4,4)
 
 void blink(uint32_t color, uint32_t duration_ms) {
   // TODO add duty cycle
@@ -111,7 +117,7 @@ void fetchTimeUsingWiFi() {
     Serial.print(".");
   }
   Serial.print("Connected\nContacting Time Server ");
-  configTime(3600 * timezone, daysavetime * 3600, "0.sk.pool.ntp.org", "2.europe.pool.ntp.org", "1.europe.pool.ntp.org");
+  configTime(3600 * timezone, daysavetime * 3600, "time1.google.com", "time2.google.com", "time3.google.com");
   do {
     tmstruct.tm_year = 0;
     GetLocalTime(&tmstruct, 5000);
@@ -136,11 +142,22 @@ void fetchTimeAndSpeak() {
   prepPlayback(buff);
 }
 
+void initWiFi() {
+  delay(500);
+  WiFi.persistent(true);
+  WiFi.enableSTA(true);
+  WiFi.setAutoConnect(true);
+  WiFi.setAutoReconnect(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.config(IP_HOST, IP_GW, IP_MASK, IP_DNS1, IP_DNS2);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+}
+
 void setup() {
   ts2.begin();
   Serial.begin(115200);
   initFS();
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  initWiFi();
   prepPlayback("/gong.mp3");
   fetchTimeUsingWiFi();
 }
