@@ -135,7 +135,7 @@ void fetchTimeAndSpeak() {
   snprintf(buff, sizeof(buff) - 1, "/time/%02d/%02d.mp3", tmstruct.tm_hour, tmstruct.tm_min);
   prepPlayback(buff);
 
-  snprintf(buff, sizeof(buff) - 1, "/dow/%1.mp3", (tmstruct.tm_wday + 1) % 7);
+  snprintf(buff, sizeof(buff) - 1, "/dow/%01d.mp3", (tmstruct.tm_wday) % 7);
   prepPlayback(buff);
 
   snprintf(buff, sizeof(buff) - 1, "/date/%02d/%02d.mp3", tmstruct.tm_mon + 1, tmstruct.tm_mday);
