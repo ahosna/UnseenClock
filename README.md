@@ -1,6 +1,16 @@
 # UnseenClock
 Audio clock for visualy impaired/blind.
 
+## Motivation
+Story: AS a blind person I want to have an easy to find clock, that allows me to get the current time, date and day of the week. This is so that I can orient myself better throughout the day.
+
+## About
+Simple to use (one button) clock for blind people. Single button allows the clock to wake up and tell the time and date. 
+
+## Technical description
+Audio packs are generated before with google api and stored on the SD card. The clock is built with Unexpected Maker's TinyS3, I2S AMP and RTC clock. MicroSD/SD is attached to SPI to get the voice files.
+
+
 # Install/Dev
 ## Python
 ```
