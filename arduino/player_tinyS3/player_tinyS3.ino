@@ -261,6 +261,11 @@ void enterComa() {
   esp_deep_sleep_start();
 }
 
+void printBatteryVoltage() {
+  Serial.print("Battery voltage [V]: ");
+  Serial.println(ts3.getBatteryVoltage());
+}
+
 void setup() {
   ts3.begin();
   Serial.begin(115200);
@@ -280,6 +285,7 @@ void setup() {
   setTimezone();
   Wire.begin();
   prepPlayback("/gong.mp3");
+  printBatteryVoltage();
   if (do_sync) {
     initWiFi();
     syncRtcFromWifi();
@@ -289,10 +295,5 @@ void setup() {
 void loop() {
   fetchTimeFromRtc();
   speakTime();
-  // speakTime();
-  if (ts3.getVbusPresent()) {
-    blink(COLOR_GREEN, 1000);
-  }else{
-    enterComa();
-  }
+  enterComa();
 }
