@@ -1,6 +1,8 @@
 # UnseenClock
 Audio clock for visualy impaired/blind.
 
+![Prototype](doc/unseen-clock-case.jpg)
+
 ## Motivation
 Story: AS a blind person I want to have an easy to find clock, that allows me to get the current time, date and day of the week. This is so that I can orient myself better throughout the day.
 
@@ -33,3 +35,8 @@ The app regenerates all the voices when run. Currently it's about `365 + 1440 + 
 ## Packs
 The latest packs are in the repo voice/locales/<LANG>
 Encoding from google is `MPEG ADTS, layer III, v2,  32 kbps, 24 kHz, Monaural`
+
+# Build
+![Top](doc/unseen-clock-top.jpg)
+![Bottom](doc/unseen-clock-bottom.jpg)
+![Dismantled](doc/unseen-clock-dismantled.jpg)
