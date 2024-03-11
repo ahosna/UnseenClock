@@ -6,6 +6,7 @@
 #include <time.h>
 #include <Ethernet.h>
 #include <DS3231-RTC.h>
+#include <ArduinoJson.h>
 
 #include "AudioGeneratorMP3.h"
 #include "AudioFileSourceSD.h"
@@ -16,10 +17,7 @@
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
 
-/* TODO - open questions
-* Consider using RTC, but how do we set it ?
-* WiFi NTP seems nice, might be too slow ?
-* Store and set WIFI credentials ?
+/* TODOs and open questions
 * Support multiple orderings based on locale time, date, dow - control from file on SD
 */
 
@@ -30,61 +28,60 @@ AudioFileSourceSD *file;
 AudioOutputI2S *out;
 DS3231 myRTC;
 struct tm tmstruct;
-long timezone = 1;
-byte daysavetime = 1;
+String ssid;
+String pass;
+String tz;
 
 #define SD_CS_PIN 34
-#define COLOR_RED 0xff0000
-#define COLOR_GREEN 0x00ff00
 #define I2S_BCLK_PIN 2
 #define I2S_WCLK_LRC_PIN 3
 #define I2S_DATA_PIN 1
 #define I2S_ENABLE_PIN gpio_num_t::GPIO_NUM_4
 #define WAKE_PIN gpio_num_t::GPIO_NUM_21
 #define WAKE_PIN_MASK GPIO_SEL_21
-#define WIFI_SSID "SSID"
-#define WIFI_PASS "PASS"
-#define IP_HOST IPAddress(192, 168, 1, 31)
-#define IP_GW IPAddress(192, 168, 1, 1)
-#define IP_MASK IPAddress(255, 255, 255, 0)
-#define IP_DNS1 IPAddress(8, 8, 8, 8)
-#define IP_DNS2 IPAddress(4, 4, 4, 4)
-#define TZ "CET1CEST2,M3.5.0/-2,M10.5.0/-1"
+#define WIRE_CLOCK_HZ 10000
 
-void blink(uint32_t color, uint32_t duration_ms) {
-  // TODO add duty cycle
-  ts3.setPixelPower(true);
-  ts3.setPixelColor(color);
-  while (1) {
-    ts3.setPixelBrightness(128);
-    delay(duration_ms / 2);
-    ts3.setPixelBrightness(0);
-    delay(duration_ms / 2);
-  }
-}
-
-void errorSD() {
-  Serial.println("SD card can't be initialized.");
-  blink(COLOR_RED, 1000);
-}
-
-void wrongDataOnSD() {
-  Serial.println("Wrong data on the SD card.");
-  blink(COLOR_RED, 1000);
-}
+#define DEFAULT_SSID "SSID"
+#define DEFAULT_PASS "PASS"
+#define DEFAULT_TZ "CET-1CEST,M3.5.0/2,M10.5.0/3" // time zone for Bratislava/Slovakia - Central Europe
+#define CONFIG_FILE "/config.json"
 
 void initFS() {
   Serial.println("Initializing SD card");
   if (!SD.begin(SD_CS_PIN)) {
-    errorSD();
+    Serial.println("SD card can't be initialized.");
+    enterComa();
   }
-  if (!SD.exists("/dow/1.mp3")) {
-    wrongDataOnSD();
+  if (!SD.exists(CONFIG_FILE)) {
+    Serial.println("Wrong data on the SD card.");
+    enterComa();
   }
+  // Read configs from SD card
+  ssid = String(DEFAULT_SSID);
+  pass = String(DEFAULT_PASS);
+  tz = String(DEFAULT_TZ);
+
+  JsonDocument doc;
+  File cfg = SD.open(CONFIG_FILE, FILE_READ);
+  DeserializationError error = deserializeJson(doc, cfg);
+  if (error) {
+    Serial.println("Failed to parse the config file.");
+  }
+  ssid = String((const char *)doc["ssid"]);
+  pass = String((const char *)doc["pass"]);
+  tz = String((const char *)doc["tz"]);
+  Serial.print("Config values:\n- ssid: ");
+  Serial.print(ssid);
+  Serial.print("\n- pass: ");
+  Serial.print(pass);
+  Serial.print("\n- tz: ");
+  Serial.println(tz);
 }
 
+
 void prepPlayback(const char *file_name) {
-  Serial.println("Playing");
+  Serial.print("Playing: ");
+  Serial.println(file_name);
   file = new AudioFileSourceSD(file_name);
   out = new AudioOutputI2S();
   out->SetOutputModeMono(true);
@@ -130,8 +127,7 @@ void fetchTimeUsingWiFi() {
     delay(500);
     Serial.print(".");
   }
-  Serial.print("Connected\nContacting Time Server ");
-  configTime(3600 * timezone, daysavetime * 3600, "0.pool.ntp.org", "1.pool.ntp.org");
+  Serial.print("Connected\nWaiting for time update ");
   do {
     tmstruct.tm_year = 0;
     GetLocalTime(&tmstruct, 5000);
@@ -156,14 +152,14 @@ void fetchTimeFromRtc() {
   tmstruct.tm_sec = myRTC.getSecond();
   tmstruct.tm_wday = myRTC.getDoW();
   dumpTime();
-  Serial.print("Reported temperature: ");
+  Serial.print("Reported RTC temperature: ");
   Serial.println(myRTC.getTemperature());
 }
 
 /*************************** Time functions **********************************************/
 void dumpTime() {
-  Serial.print("Time: ");
-  Serial.print(tmstruct.tm_year + 1900);
+  Serial.print("tmstruct: ");
+  Serial.print(tmstruct.tm_year);
   Serial.print("-");
   Serial.print(tmstruct.tm_mon);
   Serial.print("-");
@@ -180,6 +176,7 @@ void dumpTime() {
 }
 
 void syncRtcFromWifi() {
+  prepPlayback("/synchronizing.mp3");
   Serial.print("Time before RTC fetch: ");
   dumpTime();
   Serial.print("RTC time: ");
@@ -198,13 +195,20 @@ void syncRtcFromWifi() {
   fetchTimeFromRtc();
 }
 
+int normalize_wday(int wday) {
+  // days are stored as 1-7 starting from Monday
+  wday = wday % 7;
+  if (wday==0) return 7;
+  else return wday;
+}
+
 void speakTime() {
   char buff[20];
 
   snprintf(buff, sizeof(buff) - 1, "/time/%02d/%02d.mp3", tmstruct.tm_hour, tmstruct.tm_min);
   prepPlayback(buff);
 
-  snprintf(buff, sizeof(buff) - 1, "/dow/%01d.mp3", (tmstruct.tm_wday) % 7);
+  snprintf(buff, sizeof(buff) - 1, "/dow/%01d.mp3", normalize_wday(tmstruct.tm_wday));
   prepPlayback(buff);
 
   snprintf(buff, sizeof(buff) - 1, "/date/%02d/%02d.mp3", tmstruct.tm_mon + 1, tmstruct.tm_mday);
@@ -218,13 +222,13 @@ void initWiFi() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
   WiFi.mode(WIFI_STA);
-  WiFi.config(IP_HOST, IP_GW, IP_MASK, IP_DNS1, IP_DNS2);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(ssid.c_str(), pass.c_str());
 }
 
 void setTimezone() {
   // TODO pull from the SD card
-  setenv("TZ", TZ, 1);
+  setenv("TZ", tz.c_str(), 1);
+  configTzTime(tz.c_str(), "0.pool.ntp.org", "1.pool.ntp.org");
   tzset();
 }
 
@@ -283,6 +287,7 @@ void setup() {
 
   initFS();
   setTimezone();
+  Wire.setClock(WIRE_CLOCK_HZ);
   Wire.begin();
   prepPlayback("/gong.mp3");
   printBatteryVoltage();

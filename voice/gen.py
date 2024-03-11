@@ -312,6 +312,11 @@ if __name__ == "__main__":
     dry_run = False
     logging.basicConfig(level=logging.DEBUG)
     gen = GeneratorSK()
+    if len(sys.argv) > 1: 
+        logging.info("Generating direct text input into file.mp3 in locales")
+        gen.create_audio_file("file", " ".join(sys.argv[1:]), dry_run=dry_run)
+        sys.exit(0)
+
     for bank, texts in gen.banks().items():
         for path, text in texts:
             if dry_run:
